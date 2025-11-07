@@ -28,7 +28,11 @@ const SettingsPage = () => {
       updateUser(response.data.user);
       toast.success('Profile updated successfully');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to update profile';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -50,7 +54,11 @@ const SettingsPage = () => {
         confirmPassword: '',
       });
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to change password');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to change password';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

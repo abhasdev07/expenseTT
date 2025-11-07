@@ -27,11 +27,18 @@ import LoadingSpinner from './components/LoadingSpinner';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  // Always show loading spinner while checking auth
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  // If not authenticated, redirect to login
+  // The AuthContext will handle token validation
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
 };
 
 // Public Route Component (redirect to dashboard if already logged in)
@@ -67,10 +74,7 @@ function AppRoutes() {
           }
         />
 
-        {/* Home Route */}
-        <Route path="/" element={<HomePage />} />
-
-        {/* Protected Routes */}
+        {/* Protected Routes with Layout */}
         <Route
           path="/"
           element={
@@ -79,6 +83,7 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         >
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="home" element={<HomePage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="transactions" element={<TransactionsPage />} />
@@ -90,7 +95,7 @@ function AppRoutes() {
         </Route>
 
         {/* Catch all */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Router>
   );

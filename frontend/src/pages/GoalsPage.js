@@ -33,7 +33,12 @@ const GoalsPage = () => {
       const response = await goalsAPI.getAll();
       setGoals(response.data.goals || []);
     } catch (error) {
-      toast.error('Failed to load goals');
+      console.error('Failed to load goals:', error);
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load goals';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -42,31 +47,60 @@ const GoalsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate form data
+      if (!formData.name || formData.name.trim() === '') {
+        toast.error('Please enter a goal name');
+        return;
+      }
+      if (!formData.target_amount || parseFloat(formData.target_amount) <= 0) {
+        toast.error('Please enter a valid target amount');
+        return;
+      }
+      
+      // Prepare data with proper types
+      const submitData = {
+        ...formData,
+        target_amount: parseFloat(formData.target_amount),
+        current_amount: parseFloat(formData.current_amount || 0),
+      };
+      
+      console.log('Submitting goal:', submitData);
+      
       if (editingGoal) {
-        await goalsAPI.update(editingGoal.id, formData);
+        const response = await goalsAPI.update(editingGoal.id, submitData);
+        console.log('Goal update response:', response);
         toast.success('Goal updated successfully');
       } else {
-        await goalsAPI.create(formData);
+        const response = await goalsAPI.create(submitData);
+        console.log('Goal create response:', response);
         toast.success('Goal created successfully');
       }
-      fetchGoals();
+      await fetchGoals();
       handleCloseModal();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save goal');
+      console.error('Goal submit error:', error);
+      console.error('Error response:', error.response);
+      // Show all errors to help debug
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save goal';
+      toast.error(errorMessage);
     }
   };
 
   const handleContribute = async (e) => {
     e.preventDefault();
     try {
-      await goalsAPI.contribute(contributingGoal.id, { amount: contributeAmount });
+      await goalsAPI.contribute(contributingGoal.id, contributeAmount);
       toast.success('Contribution added successfully');
       fetchGoals();
       setShowContributeModal(false);
       setContributingGoal(null);
       setContributeAmount('');
     } catch (error) {
-      toast.error('Failed to add contribution');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to add contribution';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -77,7 +111,11 @@ const GoalsPage = () => {
       toast.success('Goal deleted successfully');
       fetchGoals();
     } catch (error) {
-      toast.error('Failed to delete goal');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete goal';
+        toast.error(errorMessage);
+      }
     }
   };
 

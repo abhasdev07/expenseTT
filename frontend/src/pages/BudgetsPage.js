@@ -2,7 +2,7 @@
  * Budgets Page - Budget Management
  */
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, AlertCircle, DollarSign } from 'lucide-react';
 import { budgetsAPI, categoriesAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -28,10 +28,27 @@ const BudgetsPage = () => {
 
   const fetchBudgets = async () => {
     try {
+      // Ensure token is set before making request
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.error('No access token found');
+        setLoading(false);
+        return;
+      }
+      
       const response = await budgetsAPI.getAll();
       setBudgets(response.data.budgets || []);
     } catch (error) {
-      toast.error('Failed to load budgets');
+      console.error('Failed to load budgets:', error);
+      
+      // Don't show error toast for auth errors (interceptor handles redirect)
+      if (error.response?.status === 401 || error.response?.status === 422) {
+        console.log('Authentication error, redirecting...');
+        return;
+      }
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load budgets';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -39,10 +56,29 @@ const BudgetsPage = () => {
 
   const fetchCategories = async () => {
     try {
+      // Ensure token is set before making request
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.error('No access token found');
+        return;
+      }
+      
       const response = await categoriesAPI.getAll();
       setCategories(response.data.categories?.filter(c => c.type === 'expense') || []);
+      if (!response.data.categories || response.data.categories.length === 0) {
+        toast.error('No categories found. Please add categories in the Categories page first.');
+      }
     } catch (error) {
       console.error('Failed to load categories:', error);
+      
+      // Don't show error toast for auth errors (interceptor handles redirect)
+      if (error.response?.status === 401 || error.response?.status === 422) {
+        console.log('Authentication error, redirecting...');
+        return;
+      }
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load categories';
+      toast.error(`Failed to load categories: ${errorMessage}`);
     }
   };
 
@@ -59,7 +95,11 @@ const BudgetsPage = () => {
       fetchBudgets();
       handleCloseModal();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save budget');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save budget';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -70,7 +110,11 @@ const BudgetsPage = () => {
       toast.success('Budget deleted successfully');
       fetchBudgets();
     } catch (error) {
-      toast.error('Failed to delete budget');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete budget';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -262,7 +306,8 @@ const BudgetsPage = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>
+                  <label className="block text-sm font-medium mb-1 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+                    <DollarSign size={16} />
                     Budget Amount (₹)
                   </label>
                   <input

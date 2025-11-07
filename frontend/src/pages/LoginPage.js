@@ -1,10 +1,11 @@
 /**
  * Login Page
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,18 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Don't clear tokens on mount - let AuthContext handle it
+  // Clearing tokens here causes immediate logout after login
+
+  const handleClearAuth = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    toast.success('Authentication data cleared! Please login again.');
+    window.location.reload();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -21,10 +34,13 @@ const LoginPage = () => {
     const result = await login(email, password);
     
     if (result.success) {
-      navigate('/home');
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 150);
+    } else {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -105,6 +121,16 @@ const LoginPage = () => {
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
+
+          {/* Clear Auth Button (for debugging) */}
+          <button
+            type="button"
+            onClick={handleClearAuth}
+            className="mt-3 w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <RefreshCw size={16} />
+            Clear Auth Data (if stuck)
+          </button>
 
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">

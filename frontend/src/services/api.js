@@ -16,9 +16,23 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
+    // Always get fresh token from localStorage for each request
     const token = localStorage.getItem('access_token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Ensure token is properly formatted (remove any whitespace)
+      const cleanToken = token.trim();
+      config.headers.Authorization = `Bearer ${cleanToken}`;
+      // Also update defaults to keep it in sync
+      api.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
+    } else {
+      // If no token, remove from defaults
+      delete api.defaults.headers.common['Authorization'];
+      // Don't block auth endpoints
+      if (!config.url?.includes('/auth/login') && 
+          !config.url?.includes('/auth/register') && 
+          !config.url?.includes('/auth/refresh')) {
+        console.warn('API request made without access token:', config.url);
+      }
     }
     return config;
   },
@@ -28,56 +42,139 @@ api.interceptors.request.use(
 );
 
 // Response interceptor to handle token refresh
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Don't try to refresh if this IS the refresh request
-    if (originalRequest.url?.includes('/auth/refresh')) {
-      // Refresh token is invalid, clear everything and redirect
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-        window.location.href = '/login';
+    // Don't try to refresh if this IS the refresh request or login/register
+    if (
+      originalRequest.url?.includes('/auth/refresh') ||
+      originalRequest.url?.includes('/auth/login') ||
+      originalRequest.url?.includes('/auth/register')
+    ) {
+      // If refresh failed, clear everything and redirect
+      if (originalRequest.url?.includes('/auth/refresh')) {
+        isRefreshing = false;
+        processQueue(error, null);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        delete api.defaults.headers.common['Authorization'];
+        // Only redirect if not already on login/register page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          // Use a small delay to prevent redirect loops
+          setTimeout(() => {
+            if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+              window.location.href = '/login';
+            }
+          }, 100);
+        }
       }
       return Promise.reject(error);
     }
 
     // If error is 401 or 422 (JWT validation error) and we haven't tried to refresh yet
     if ((error.response?.status === 401 || error.response?.status === 422) && !originalRequest._retry) {
+      // Don't try to refresh if this is a login/register request
+      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register')) {
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
+      console.log('🔄 Token expired, attempting refresh...');
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        if (refreshToken) {
-          const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
-            headers: {
-              Authorization: `Bearer ${refreshToken}`,
-            },
-          });
-
-          const { access_token } = response.data;
-          localStorage.setItem('access_token', access_token);
-
-          // Retry original request with new token
-          originalRequest.headers.Authorization = `Bearer ${access_token}`;
-          return api(originalRequest);
-        } else {
-          // No refresh token, redirect to login
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
+        if (!refreshToken) {
+          console.log('❌ No refresh token found');
+          isRefreshing = false;
+          processQueue(error, null);
+          // Don't clear tokens or redirect here - let the component handle it
+          // This prevents immediate redirect after login
           return Promise.reject(error);
         }
+
+        console.log('📤 Sending refresh request');
+        const response = await axios.post(`${API_URL}/auth/refresh`, {}, {
+          headers: {
+            Authorization: `Bearer ${refreshToken}`,
+          },
+        });
+
+        const { access_token } = response.data;
+        if (!access_token) {
+          throw new Error('No access token in refresh response');
+        }
+
+        localStorage.setItem('access_token', access_token);
+
+        // Update default headers for all future requests
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+        console.log('✅ Token refreshed successfully');
+        isRefreshing = false;
+        processQueue(null, access_token);
+
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout user
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          window.location.href = '/login';
+        // Refresh failed
+        console.error('❌ Token refresh failed:', refreshError.response?.status, refreshError.response?.data);
+        isRefreshing = false;
+        processQueue(refreshError, null);
+        
+        // Only clear tokens and redirect if refresh actually failed with auth error
+        // Don't redirect immediately - let React Router handle it
+        if (refreshError.response?.status === 401 || refreshError.response?.status === 422) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('user');
+          delete api.defaults.headers.common['Authorization'];
+          
+          // Use a longer delay and check pathname to prevent redirect loops
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login' && currentPath !== '/register') {
+            setTimeout(() => {
+              // Double check pathname hasn't changed
+              if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+                // Use window.location.href as last resort
+                window.location.href = '/login';
+              }
+            }, 500);
+          }
         }
         return Promise.reject(refreshError);
       }
@@ -94,6 +191,7 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
   updateTheme: (theme) => api.put('/auth/profile/theme', { theme }),
+  changePassword: (data) => api.put('/auth/profile/password', data),
 };
 
 // Categories API

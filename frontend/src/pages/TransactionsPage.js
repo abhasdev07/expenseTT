@@ -30,7 +30,12 @@ const TransactionsPage = () => {
       const response = await transactionsAPI.getAll();
       setTransactions(response.data.transactions || []);
     } catch (error) {
-      toast.error('Failed to load transactions');
+      console.error('Failed to load transactions:', error);
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load transactions';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -38,32 +43,65 @@ const TransactionsPage = () => {
 
   const fetchCategories = async () => {
     try {
+      console.log('Fetching categories...');
       const response = await categoriesAPI.getAll();
-      console.log('Categories response:', response.data);
-      setCategories(response.data.categories || []);
-      if (!response.data.categories || response.data.categories.length === 0) {
-        toast.error('No categories found. Please contact support.');
+      console.log('Categories response:', response);
+      console.log('Categories data:', response.data);
+      const categoriesList = response.data?.categories || response.data || [];
+      console.log('Categories list:', categoriesList);
+      setCategories(categoriesList);
+      if (categoriesList.length === 0) {
+        console.warn('No categories found');
+        toast.error('No categories found. Please add categories in the Categories page first.');
       }
     } catch (error) {
       console.error('Failed to load categories:', error);
-      toast.error(`Failed to load categories: ${error.message}`);
+      console.error('Error response:', error.response);
+      // Show all errors to help debug
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load categories';
+      toast.error(`Failed to load categories: ${errorMessage}`);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Validate form data
+      if (!formData.category_id) {
+        toast.error('Please select a category');
+        return;
+      }
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        toast.error('Please enter a valid amount');
+        return;
+      }
+      
+      // Prepare data with proper types
+      const submitData = {
+        ...formData,
+        category_id: parseInt(formData.category_id),
+        amount: parseFloat(formData.amount),
+      };
+      
+      console.log('Submitting transaction:', submitData);
+      
       if (editingTransaction) {
-        await transactionsAPI.update(editingTransaction.id, formData);
+        const response = await transactionsAPI.update(editingTransaction.id, submitData);
+        console.log('Transaction update response:', response);
         toast.success('Transaction updated successfully');
       } else {
-        await transactionsAPI.create(formData);
+        const response = await transactionsAPI.create(submitData);
+        console.log('Transaction create response:', response);
         toast.success('Transaction created successfully');
       }
-      fetchTransactions();
+      await fetchTransactions();
       handleCloseModal();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save transaction');
+      console.error('Transaction submit error:', error);
+      console.error('Error response:', error.response);
+      // Show all errors to help debug
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save transaction';
+      toast.error(errorMessage);
     }
   };
 
@@ -74,7 +112,11 @@ const TransactionsPage = () => {
       toast.success('Transaction deleted successfully');
       fetchTransactions();
     } catch (error) {
-      toast.error('Failed to delete transaction');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete transaction';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -87,6 +129,14 @@ const TransactionsPage = () => {
       description: transaction.description || '',
       date: transaction.date.split('T')[0],
     });
+    // Refetch categories when opening edit modal
+    fetchCategories();
+    setShowModal(true);
+  };
+
+  const handleOpenModal = () => {
+    // Refetch categories when opening add modal
+    fetchCategories();
     setShowModal(true);
   };
 
@@ -149,7 +199,7 @@ const TransactionsPage = () => {
           <option value="expense">Expense</option>
         </select>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenModal}
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
         >
           <Plus size={20} />
@@ -259,13 +309,17 @@ const TransactionsPage = () => {
                     required
                   >
                     <option value="">Select a category</option>
-                    {categories
-                      .filter(c => c.type === formData.type)
-                      .map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
+                    {categories && categories.length > 0 ? (
+                      categories
+                        .filter(c => c.type === formData.type)
+                        .map(category => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))
+                    ) : (
+                      <option value="" disabled>Loading categories...</option>
+                    )}
                   </select>
                 </div>
                 <div>

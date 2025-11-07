@@ -29,7 +29,12 @@ const CategoriesPage = () => {
       const response = await categoriesAPI.getAll();
       setCategories(response.data.categories || []);
     } catch (error) {
-      toast.error('Failed to load categories');
+      console.error('Failed to load categories:', error);
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load categories';
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -48,7 +53,12 @@ const CategoriesPage = () => {
       fetchCategories();
       handleCloseModal();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save category');
+      console.error('Failed to save category:', error);
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to save category';
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -59,7 +69,11 @@ const CategoriesPage = () => {
       toast.success('Category deleted successfully');
       fetchCategories();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to delete category');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete category';
+        toast.error(errorMessage);
+      }
     }
   };
 

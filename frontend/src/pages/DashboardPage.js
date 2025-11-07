@@ -22,6 +22,11 @@ const DashboardPage = () => {
       setSummary(response.data);
     } catch (error) {
       console.error('Failed to fetch summary:', error);
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load dashboard data';
+        toast.error(errorMessage);
+      }
       // Set default empty data on error
       setSummary({
         total_income: 0,

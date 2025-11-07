@@ -1,7 +1,7 @@
 /**
  * Analytics Page - Financial Analytics and Insights
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, PieChart, Calendar } from 'lucide-react';
 import { analyticsAPI } from '../services/api';
 import toast from 'react-hot-toast';
@@ -12,18 +12,18 @@ const AnalyticsPage = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [selectedMonth, selectedYear]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const response = await analyticsAPI.getSummary(selectedMonth, selectedYear);
       setSummary(response.data);
     } catch (error) {
       console.error('Failed to load analytics:', error);
-      toast.error('Failed to load analytics data');
+      // Only show error if it's not an auth error (interceptor handles that)
+      if (error.response?.status !== 401 && error.response?.status !== 422) {
+        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load analytics data';
+        toast.error(errorMessage);
+      }
       // Set default empty data
       setSummary({
         total_income: 0,
@@ -35,7 +35,11 @@ const AnalyticsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (
