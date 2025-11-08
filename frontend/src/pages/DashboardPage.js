@@ -11,15 +11,25 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Legend,
+  Tooltip,
+} from "recharts";
 import { analyticsAPI } from "../services/api";
 import toast from "react-hot-toast";
 
 const DashboardPage = () => {
   const [summary, setSummary] = useState(null);
+  const [spendingData, setSpendingData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchSummary();
+    fetchSpendingByCategory();
   }, []);
 
   const fetchSummary = async () => {
@@ -47,6 +57,60 @@ const DashboardPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSpendingByCategory = async () => {
+    try {
+      const response = await analyticsAPI.getSpendingByCategory({
+        type: "expense",
+      });
+      const data = response.data.spending || [];
+
+      // Convert total_amount to number for the chart
+      const formattedData = data.map((item) => ({
+        ...item,
+        total_amount: parseFloat(item.total_amount || 0),
+        percentage: parseFloat(item.percentage || 0),
+      }));
+
+      // Group small slices (< 3%) into "Other"
+      const threshold = 3;
+      const mainCategories = formattedData.filter(
+        (item) => item.percentage >= threshold,
+      );
+      const smallCategories = formattedData.filter(
+        (item) => item.percentage < threshold,
+      );
+
+      let chartData = [...mainCategories];
+      if (smallCategories.length > 0) {
+        const otherTotal = smallCategories.reduce(
+          (sum, item) => sum + item.total_amount,
+          0,
+        );
+        const otherPercentage = smallCategories.reduce(
+          (sum, item) => sum + item.percentage,
+          0,
+        );
+        chartData.push({
+          category_name: `Other (${smallCategories.length} categories)`,
+          total_amount: otherTotal,
+          percentage: otherPercentage,
+          category_color: "#94a3b8",
+          transaction_count: smallCategories.reduce(
+            (sum, item) => sum + (item.transaction_count || 0),
+            0,
+          ),
+          isOther: true,
+          subcategories: smallCategories,
+        });
+      }
+
+      setSpendingData(chartData);
+    } catch (error) {
+      console.error("Failed to fetch spending data:", error);
+      // Don't show error toast, just log it
     }
   };
 
@@ -113,7 +177,7 @@ const DashboardPage = () => {
           Dashboard
         </h1>
         <p className="mt-1" style={{ color: "var(--text-secondary)" }}>
-          Welcome back! Here's your all-time financial overview.
+          Here's your complete financial overview
         </p>
       </div>
 
@@ -126,8 +190,8 @@ const DashboardPage = () => {
 
           return (
             <div key={stat.name} className="card">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
                   <p
                     className="text-sm font-medium"
                     style={{ color: "var(--text-secondary)" }}
@@ -193,18 +257,296 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
+      {/* Spending by Category Chart */}
       <div className="card">
         <h2
           className="text-xl font-bold mb-4"
           style={{ color: "var(--text-primary)" }}
         >
-          Recent Transactions
+          Spending by Category
         </h2>
-        <p style={{ color: "var(--text-secondary)" }}>
-          Your recent transactions will appear here. Start by adding your first
-          transaction!
-        </p>
+        <div className="mb-4">
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            {spendingData.filter((c) => !c.isOther).length} main categories |
+            Total spent: ₹
+            {spendingData
+              .reduce(
+                (sum, item) => sum + parseFloat(item.total_amount || 0),
+                0,
+              )
+              .toLocaleString("en-IN")}
+          </p>
+        </div>
+        {spendingData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={500}>
+            <PieChart>
+              <Pie
+                data={spendingData}
+                dataKey="total_amount"
+                nameKey="category_name"
+                cx="50%"
+                cy="45%"
+                outerRadius={130}
+                innerRadius={0}
+                paddingAngle={1}
+                label={false}
+                labelLine={false}
+                activeShape={{
+                  outerRadius: 145,
+                  stroke: "var(--text-primary)",
+                  strokeWidth: 2,
+                }}
+              >
+                {spendingData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.category_color || "#8884d8"}
+                    style={{ cursor: "pointer", outline: "none" }}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div
+                        style={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          padding: "12px",
+                          boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: "600",
+                            color: "#1f2937",
+                            marginBottom: "8px",
+                            fontSize: "14px",
+                          }}
+                        >
+                          {data.category_name}
+                        </div>
+                        <div
+                          style={{
+                            color: "#4b5563",
+                            fontSize: "13px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Amount: ₹
+                          {parseFloat(data.total_amount).toLocaleString(
+                            "en-IN",
+                            { minimumFractionDigits: 2 },
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            color: "#4b5563",
+                            fontSize: "13px",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Percentage: {data.percentage.toFixed(1)}%
+                        </div>
+                        <div style={{ color: "#6b7280", fontSize: "12px" }}>
+                          {data.transaction_count} transactions
+                        </div>
+                        {data.isOther && data.subcategories && (
+                          <div
+                            style={{
+                              marginTop: "8px",
+                              paddingTop: "8px",
+                              borderTop: "1px solid #e5e7eb",
+                              fontSize: "12px",
+                              color: "#6b7280",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontWeight: "600",
+                                marginBottom: "4px",
+                              }}
+                            >
+                              Includes:
+                            </div>
+                            {data.subcategories.slice(0, 5).map((sub, i) => (
+                              <div key={i} style={{ marginLeft: "8px" }}>
+                                • {sub.category_name} (
+                                {sub.percentage.toFixed(1)}%)
+                              </div>
+                            ))}
+                            {data.subcategories.length > 5 && (
+                              <div
+                                style={{
+                                  marginLeft: "8px",
+                                  fontStyle: "italic",
+                                }}
+                              >
+                                ... and {data.subcategories.length - 5} more
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                height={80}
+                wrapperStyle={{
+                  paddingTop: "20px",
+                  maxHeight: "80px",
+                  overflowY: "auto",
+                }}
+                content={({ payload }) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                      gap: "12px",
+                      padding: "8px",
+                    }}
+                  >
+                    {payload.map((entry, index) => (
+                      <div
+                        key={`legend-${index}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "13px",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "12px",
+                            height: "12px",
+                            borderRadius: "3px",
+                            backgroundColor: entry.color,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span>
+                          {entry.payload.category_name.split(" (")[0]} (
+                          {entry.payload.percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <p style={{ color: "var(--text-secondary)" }}>
+              No expense data available. Start adding expenses to see your
+              spending breakdown!
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Insights Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card">
+          <h2
+            className="text-xl font-bold mb-4"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Financial Health
+          </h2>
+          <div className="space-y-4">
+            <div
+              className="flex justify-between items-center p-3 rounded-lg"
+              style={{ backgroundColor: "var(--bg-secondary)" }}
+            >
+              <span style={{ color: "var(--text-secondary)" }}>
+                Transactions This Period
+              </span>
+              <span
+                className="font-bold"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {summary?.transaction_count || 0}
+              </span>
+            </div>
+            <div
+              className="flex justify-between items-center p-3 rounded-lg"
+              style={{ backgroundColor: "var(--bg-secondary)" }}
+            >
+              <span style={{ color: "var(--text-secondary)" }}>
+                Income Entries
+              </span>
+              <span className="font-bold text-green-600">
+                {summary?.income_count || 0}
+              </span>
+            </div>
+            <div
+              className="flex justify-between items-center p-3 rounded-lg"
+              style={{ backgroundColor: "var(--bg-secondary)" }}
+            >
+              <span style={{ color: "var(--text-secondary)" }}>
+                Expense Entries
+              </span>
+              <span className="font-bold text-red-600">
+                {summary?.expense_count || 0}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <h2
+            className="text-xl font-bold mb-4"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Top Spending Categories
+          </h2>
+          <div className="space-y-3">
+            {spendingData.slice(0, 5).map((category, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: category.category_color }}
+                ></div>
+                <div className="flex-1 flex justify-between items-center">
+                  <span style={{ color: "var(--text-primary)" }}>
+                    {category.category_name}
+                  </span>
+                  <span
+                    className="font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    ₹{parseFloat(category.total_amount).toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  {category.percentage}%
+                </span>
+              </div>
+            ))}
+            {spendingData.length === 0 && (
+              <p
+                style={{ color: "var(--text-secondary)" }}
+                className="text-center py-4"
+              >
+                No spending data yet
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

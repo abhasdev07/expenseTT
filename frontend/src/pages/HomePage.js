@@ -1,61 +1,67 @@
 /**
  * Home Page - Landing page with quick actions
  */
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Target, TrendingUp, DollarSign, PieChart, Calendar } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import React from "react";
+import { Link } from "react-router-dom";
+import {
+  Target,
+  TrendingUp,
+  DollarSign,
+  PieChart,
+  Calendar,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const quickActions = [
     {
-      title: 'Add Expense',
-      description: 'Track your spending',
+      title: "Add Expense",
+      description: "Track your spending",
       icon: <DollarSign className="w-8 h-8" />,
-      color: 'bg-red-500',
-      hoverColor: 'hover:bg-red-600',
-      link: '/transactions?type=expense',
+      color: "bg-red-500",
+      hoverColor: "hover:bg-red-600",
+      link: "/transactions?type=expense",
     },
     {
-      title: 'Create Budget',
-      description: 'Set spending limits',
+      title: "Create Budget",
+      description: "Set spending limits",
       icon: <PieChart className="w-8 h-8" />,
-      color: 'bg-blue-500',
-      hoverColor: 'hover:bg-blue-600',
-      link: '/budgets',
+      color: "bg-blue-500",
+      hoverColor: "hover:bg-blue-600",
+      link: "/budgets",
     },
     {
-      title: 'Set Goal',
-      description: 'Plan your savings',
+      title: "Set Goal",
+      description: "Plan your savings",
       icon: <Target className="w-8 h-8" />,
-      color: 'bg-green-500',
-      hoverColor: 'hover:bg-green-600',
-      link: '/goals',
+      color: "bg-green-500",
+      hoverColor: "hover:bg-green-600",
+      link: "/goals",
     },
   ];
 
   const features = [
     {
       icon: <TrendingUp className="w-6 h-6" />,
-      title: 'Track Expenses',
-      description: 'Monitor your income and expenses in real-time',
+      title: "Track Expenses",
+      description: "Monitor your income and expenses in real-time",
     },
     {
       icon: <PieChart className="w-6 h-6" />,
-      title: 'Smart Budgets',
-      description: 'Set budgets and get alerts when you overspend',
+      title: "Smart Budgets",
+      description: "Set budgets and get alerts when you overspend",
     },
     {
       icon: <Target className="w-6 h-6" />,
-      title: 'Savings Goals',
-      description: 'Create goals and track your progress',
+      title: "Savings Goals",
+      description: "Create goals and track your progress",
     },
     {
       icon: <Calendar className="w-6 h-6" />,
-      title: 'Calendar View',
-      description: 'Visualize your transactions on a calendar',
+      title: "Calendar View",
+      description: "Visualize your transactions on a calendar",
     },
   ];
 
@@ -66,10 +72,14 @@ const HomePage = () => {
           {/* Hero Section */}
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold text-[var(--text-primary)] mb-4">
-              Welcome to <span className="text-blue-600">ExpenseTracker</span>
+              Welcome,{" "}
+              <span className="text-blue-600">
+                {user?.username || user?.email?.split("@")[0] || "User"}
+              </span>
+              ! 👋
             </h1>
             <p className="text-xl text-[var(--text-secondary)] mb-8">
-              Take control of your finances with smart expense tracking
+              Ready to take control of your finances today?
             </p>
           </div>
 
@@ -90,7 +100,9 @@ const HomePage = () => {
                       {action.icon}
                     </div>
                     <h3 className="text-2xl font-bold mb-2">{action.title}</h3>
-                    <p className="text-white text-opacity-90">{action.description}</p>
+                    <p className="text-white text-opacity-90">
+                      {action.description}
+                    </p>
                   </div>
                 </Link>
               ))}
@@ -112,7 +124,9 @@ const HomePage = () => {
                   <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
                     {feature.title}
                   </h3>
-                  <p className="text-[var(--text-secondary)] text-sm">{feature.description}</p>
+                  <p className="text-[var(--text-secondary)] text-sm">
+                    {feature.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -143,13 +157,14 @@ const HomePage = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-6">
-            Master Your Money with{' '}
+            Master Your Money with{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
               ExpenseTracker
             </span>
           </h1>
           <p className="text-2xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Track expenses, set budgets, achieve goals - all in one beautiful app
+            Track expenses, set budgets, achieve goals - all in one beautiful
+            app
           </p>
           <div className="flex gap-4 justify-center">
             <Link
@@ -178,7 +193,9 @@ const HomePage = () => {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 {feature.title}
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">{feature.description}</p>
+              <p className="text-gray-600 dark:text-gray-300">
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
@@ -191,15 +208,21 @@ const HomePage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
               <div className="text-4xl font-bold text-blue-600 mb-2">100%</div>
-              <div className="text-gray-600 dark:text-gray-300">Free to Use</div>
+              <div className="text-gray-600 dark:text-gray-300">
+                Free to Use
+              </div>
             </div>
             <div>
               <div className="text-4xl font-bold text-purple-600 mb-2">18+</div>
-              <div className="text-gray-600 dark:text-gray-300">Default Categories</div>
+              <div className="text-gray-600 dark:text-gray-300">
+                Default Categories
+              </div>
             </div>
             <div>
               <div className="text-4xl font-bold text-green-600 mb-2">∞</div>
-              <div className="text-gray-600 dark:text-gray-300">Unlimited Transactions</div>
+              <div className="text-gray-600 dark:text-gray-300">
+                Unlimited Transactions
+              </div>
             </div>
           </div>
         </div>
