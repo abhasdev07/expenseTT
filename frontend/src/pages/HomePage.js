@@ -76,7 +76,7 @@ const HomePage = () => {
               <span className="text-blue-600">
                 {user?.username || user?.email?.split("@")[0] || "User"}
               </span>
-              ! 👋
+              !
             </h1>
             <p className="text-xl text-[var(--text-secondary)] mb-8">
               Ready to take control of your finances today?

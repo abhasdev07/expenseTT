@@ -389,8 +389,8 @@ const BudgetsPage = () => {
                     <AlertCircle size={16} className="text-red-600" />
                     <span className="text-sm font-semibold text-red-600">
                       {progress >= 100
-                        ? "🚨 Budget exceeded!"
-                        : "⚠️ Approaching limit"}
+                        ? "Budget exceeded!"
+                        : "Approaching limit"}
                     </span>
                   </div>
                 )}

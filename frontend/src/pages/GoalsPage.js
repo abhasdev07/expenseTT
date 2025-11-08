@@ -323,7 +323,6 @@ const GoalsPage = () => {
                         border: `1px solid ${goal.color}40`,
                       }}
                     >
-                      {isCompleted ? "🎉 " : ""}
                       {progress.toFixed(1)}%
                     </span>
                   </div>
@@ -399,7 +398,7 @@ const GoalsPage = () => {
                 )}
                 {isCompleted && (
                   <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 py-2 px-4 rounded-lg text-center font-semibold shadow-md border border-green-400 animate-pulse">
-                    🎉 Goal Completed!
+                    Goal Completed!
                   </div>
                 )}
               </div>

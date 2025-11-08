@@ -282,7 +282,7 @@ const CategoriesPage = () => {
                       : "1px solid #ef4444",
                 }}
               >
-                {category.type === "income" ? "💰 Income" : "💸 Expense"}
+                {category.type === "income" ? "Income" : "Expense"}
               </span>
             </div>
           ))
