@@ -1,11 +1,18 @@
 /**
  * Dashboard Page - Main overview with dynamic data
  */
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { TrendingUp, TrendingDown, Wallet, Target, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { analyticsAPI } from '../services/api';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  TrendingUp,
+  TrendingDown,
+  Wallet,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
+import { analyticsAPI } from "../services/api";
+import toast from "react-hot-toast";
 
 const DashboardPage = () => {
   const [summary, setSummary] = useState(null);
@@ -17,14 +24,18 @@ const DashboardPage = () => {
 
   const fetchSummary = async () => {
     try {
-      const now = new Date();
-      const response = await analyticsAPI.getSummary(now.getMonth() + 1, now.getFullYear());
+      // Fetch all-time data by not passing month/year parameters
+      const response = await analyticsAPI.getSummary();
       setSummary(response.data);
     } catch (error) {
-      console.error('Failed to fetch summary:', error);
+      console.error("Failed to fetch summary:", error);
       // Only show error if it's not an auth error (interceptor handles that)
       if (error.response?.status !== 401 && error.response?.status !== 422) {
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to load dashboard data';
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          "Failed to load dashboard data";
         toast.error(errorMessage);
       }
       // Set default empty data on error
@@ -40,7 +51,7 @@ const DashboardPage = () => {
   };
 
   const formatCurrency = (amount) => {
-    return `₹${parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${parseFloat(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   if (loading) {
@@ -54,40 +65,40 @@ const DashboardPage = () => {
   const totalIncome = parseFloat(summary?.total_income || 0);
   const totalExpenses = parseFloat(summary?.total_expenses || 0);
   const netBalance = totalIncome - totalExpenses;
-  const savingsRate = totalIncome > 0 ? ((netBalance / totalIncome) * 100) : 0;
+  const savingsRate = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
 
   const stats = [
     {
-      name: 'Total Income',
+      name: "Total Income",
       value: formatCurrency(totalIncome),
-      change: '0%',
+      change: "0%",
       icon: TrendingUp,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100 dark:bg-green-900/20',
+      color: "text-green-600",
+      bgColor: "bg-green-100 dark:bg-green-900/20",
     },
     {
-      name: 'Total Expenses',
+      name: "Total Expenses",
       value: formatCurrency(totalExpenses),
-      change: '0%',
+      change: "0%",
       icon: TrendingDown,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100 dark:bg-red-900/20',
+      color: "text-red-600",
+      bgColor: "bg-red-100 dark:bg-red-900/20",
     },
     {
-      name: 'Net Balance',
+      name: "Net Balance",
       value: formatCurrency(netBalance),
-      change: '0%',
+      change: "0%",
       icon: Wallet,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100 dark:bg-blue-900/20',
+      color: "text-blue-600",
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
     },
     {
-      name: 'Savings Rate',
+      name: "Savings Rate",
       value: `${savingsRate.toFixed(1)}%`,
-      change: '0%',
+      change: "0%",
       icon: Target,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+      color: "text-purple-600",
+      bgColor: "bg-purple-100 dark:bg-purple-900/20",
     },
   ];
 
@@ -95,11 +106,14 @@ const DashboardPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h1
+          className="text-3xl font-bold"
+          style={{ color: "var(--text-primary)" }}
+        >
           Dashboard
         </h1>
-        <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
-          Welcome back! Here's your financial overview.
+        <p className="mt-1" style={{ color: "var(--text-secondary)" }}>
+          Welcome back! Here's your all-time financial overview.
         </p>
       </div>
 
@@ -109,15 +123,21 @@ const DashboardPage = () => {
           const Icon = stat.icon;
           const changeValue = parseFloat(stat.change);
           const isPositive = changeValue >= 0;
-          
+
           return (
             <div key={stat.name} className="card">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  <p
+                    className="text-sm font-medium"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {stat.name}
                   </p>
-                  <p className="text-2xl font-bold mt-2" style={{ color: 'var(--text-primary)' }}>
+                  <p
+                    className="text-2xl font-bold mt-2"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     {stat.value}
                   </p>
                   {changeValue !== 0 && (
@@ -127,10 +147,19 @@ const DashboardPage = () => {
                       ) : (
                         <ArrowDownRight size={16} className="text-red-600" />
                       )}
-                      <span className={isPositive ? 'text-green-600' : 'text-red-600'}>
+                      <span
+                        className={
+                          isPositive ? "text-green-600" : "text-red-600"
+                        }
+                      >
                         {stat.change}
                       </span>
-                      <span className="ml-1" style={{ color: 'var(--text-tertiary)' }}>vs last month</span>
+                      <span
+                        className="ml-1"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        vs last month
+                      </span>
                     </div>
                   )}
                 </div>
@@ -145,7 +174,10 @@ const DashboardPage = () => {
 
       {/* Quick Actions */}
       <div className="card">
-        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="text-xl font-bold mb-4"
+          style={{ color: "var(--text-primary)" }}
+        >
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -163,11 +195,15 @@ const DashboardPage = () => {
 
       {/* Recent Activity Placeholder */}
       <div className="card">
-        <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+        <h2
+          className="text-xl font-bold mb-4"
+          style={{ color: "var(--text-primary)" }}
+        >
           Recent Transactions
         </h2>
-        <p style={{ color: 'var(--text-secondary)' }}>
-          Your recent transactions will appear here. Start by adding your first transaction!
+        <p style={{ color: "var(--text-secondary)" }}>
+          Your recent transactions will appear here. Start by adding your first
+          transaction!
         </p>
       </div>
     </div>

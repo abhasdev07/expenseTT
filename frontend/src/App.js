@@ -33,7 +33,6 @@ const ProtectedRoute = ({ children }) => {
   }
 
   // If not authenticated, redirect to login
-  // The AuthContext will handle token validation
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }

@@ -28,7 +28,6 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       // Skip auth check if we just logged in (prevent race condition)
       if (justLoggedInRef.current) {
-        console.log('⏭️ Skipping auth check - just logged in');
         setLoading(false);
         // Don't set isAuthenticated here - it's already set by login
         return;
@@ -37,24 +36,17 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('access_token');
       const refreshToken = localStorage.getItem('refresh_token');
       
-      console.log(' Auth Check:', { 
-        hasAccessToken: !!token, 
-        hasRefreshToken: !!refreshToken,
-        accessTokenLength: token?.length,
-        refreshTokenLength: refreshToken?.length
-      });
-      
       if (!token && !refreshToken) {
         // No tokens at all, user is not authenticated
-        setLoading(false);
+        setUser(null);
         setIsAuthenticated(false);
+        setLoading(false);
         return;
       }
 
       if (token) {
         // Set the token in API default headers before making any requests
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        console.log(' Setting token in axios defaults:', token.substring(0, 20) + '...');
         
         try {
           const response = await authAPI.getProfile();
@@ -64,7 +56,6 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
             // Ensure token is still in defaults after successful auth
             api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            console.log(' Auth check successful');
             return;
           } else {
             throw new Error('Invalid response format');
@@ -219,7 +210,6 @@ export const AuthProvider = ({ children }) => {
       
       // Set the token in API default headers immediately
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      console.log(' Token set in axios defaults after login:', access_token.substring(0, 20) + '...');
       
       // Verify the token works by getting profile
       try {
@@ -292,10 +282,10 @@ export const AuthProvider = ({ children }) => {
       
       toast.success('Registration successful!');
       
-      // Clear the flag after a short delay
+      // Clear the flag after a longer delay to allow navigation
       setTimeout(() => {
         justLoggedInRef.current = false;
-      }, 1000);
+      }, 3000);
       
       return { success: true };
     } catch (error) {

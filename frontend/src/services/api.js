@@ -18,21 +18,15 @@ api.interceptors.request.use(
   (config) => {
     // Always get fresh token from localStorage for each request
     const token = localStorage.getItem('access_token');
+    
     if (token) {
       // Ensure token is properly formatted (remove any whitespace)
       const cleanToken = token.trim();
       config.headers.Authorization = `Bearer ${cleanToken}`;
-      // Also update defaults to keep it in sync
-      api.defaults.headers.common['Authorization'] = `Bearer ${cleanToken}`;
     } else {
       // If no token, remove from defaults
+      delete config.headers.Authorization;
       delete api.defaults.headers.common['Authorization'];
-      // Don't block auth endpoints
-      if (!config.url?.includes('/auth/login') && 
-          !config.url?.includes('/auth/register') && 
-          !config.url?.includes('/auth/refresh')) {
-        console.warn('API request made without access token:', config.url);
-      }
     }
     return config;
   },
