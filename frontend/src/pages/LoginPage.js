@@ -1,42 +1,30 @@
 /**
  * Login Page
  */
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  // Don't clear tokens on mount - let AuthContext handle it
-  // Clearing tokens here causes immediate logout after login
-
-  const handleClearAuth = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    sessionStorage.clear();
-    toast.success('Authentication data cleared! Please login again.');
-    window.location.reload();
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     const result = await login(email, password);
-    
+
     if (result.success) {
       // Small delay to ensure auth state is updated
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }, 150);
     } else {
       setLoading(false);
@@ -51,9 +39,7 @@ const LoginPage = () => {
           <h1 className="text-4xl font-bold text-blue-600 mb-2">
             ExpenseTracker
           </h1>
-          <p className="text-gray-600">
-            Manage your finances with ease
-          </p>
+          <p className="text-gray-600">Manage your finances with ease</p>
         </div>
 
         {/* Login Form */}
@@ -75,7 +61,7 @@ const LoginPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input"
-                  style={{ paddingLeft: '2.75rem' }}
+                  style={{ paddingLeft: "2.75rem" }}
                   placeholder="your@email.com"
                   required
                 />
@@ -90,11 +76,11 @@ const LoginPage = () => {
                   <Lock size={18} className="text-gray-400" />
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input"
-                  style={{ paddingLeft: '2.75rem', paddingRight: '2.75rem' }}
+                  style={{ paddingLeft: "2.75rem", paddingRight: "2.75rem" }}
                   placeholder="••••••••"
                   required
                 />
@@ -104,9 +90,15 @@ const LoginPage = () => {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeOff size={18} className="text-gray-400 hover:text-gray-600" />
+                    <EyeOff
+                      size={18}
+                      className="text-gray-400 hover:text-gray-600"
+                    />
                   ) : (
-                    <Eye size={18} className="text-gray-400 hover:text-gray-600" />
+                    <Eye
+                      size={18}
+                      className="text-gray-400 hover:text-gray-600"
+                    />
                   )}
                 </button>
               </div>
@@ -118,23 +110,13 @@ const LoginPage = () => {
               disabled={loading}
               className="btn btn-primary w-full"
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 
-          {/* Clear Auth Button (for debugging) */}
-          <button
-            type="button"
-            onClick={handleClearAuth}
-            className="mt-3 w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-          >
-            <RefreshCw size={16} />
-            Clear Auth Data (if stuck)
-          </button>
-
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{' '}
+            Don't have an account?{" "}
             <Link
               to="/register"
               className="font-medium text-primary-600 dark:text-primary-400 hover:underline"

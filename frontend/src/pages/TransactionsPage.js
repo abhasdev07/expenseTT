@@ -281,19 +281,47 @@ const TransactionsPage = () => {
           filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow flex items-center justify-between"
-              style={{ backgroundColor: "var(--card-bg)" }}
+              className="p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 flex items-center justify-between border border-transparent hover:border-blue-300"
+              style={{
+                backgroundColor: "var(--card-bg)",
+                backgroundImage:
+                  transaction.type === "income"
+                    ? "linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%)"
+                    : "linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, transparent 100%)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = "#93c5fd";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = "transparent";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
             >
               <div className="flex items-center gap-4 flex-1">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300"
                   style={{
                     backgroundColor: transaction.category?.color + "20",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      transaction.category?.color + "40";
+                    e.currentTarget.style.boxShadow = `0 4px 8px ${transaction.category?.color}40`;
+                    e.currentTarget.style.transform = "scale(1.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                      transaction.category?.color + "20";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 4px rgba(0,0,0,0.1)";
+                    e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
                   <span
                     style={{ color: transaction.category?.color }}
-                    className="text-xl"
+                    className="text-xl font-bold"
                   >
                     {transaction.type === "income" ? "↑" : "↓"}
                   </span>
@@ -334,13 +362,25 @@ const TransactionsPage = () => {
               <div className="flex gap-2 ml-4">
                 <button
                   onClick={() => handleEdit(transaction)}
-                  className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                  className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md border border-transparent"
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.borderColor = "#60a5fa")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.borderColor = "transparent")
+                  }
                 >
                   <Edit2 size={18} />
                 </button>
                 <button
                   onClick={() => handleDelete(transaction.id)}
-                  className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                  className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 transition-all duration-200 hover:scale-110 shadow-sm hover:shadow-md border border-transparent"
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.borderColor = "#ef4444")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.borderColor = "transparent")
+                  }
                 >
                   <Trash2 size={18} />
                 </button>
